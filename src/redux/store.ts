@@ -5,12 +5,16 @@ import middlewares from './middlewares'
 
 // RTK
 import { clientRTKProvider } from './rtk/client'
+import { addressRTKProvider } from './rtk/address'
+import { profileRTKProvider } from './rtk/profile'
 
 
 export const store = configureStore({
 	reducer: {
 		// RTK
-		[clientRTKProvider.reducerPath]: clientRTKProvider.reducer
+		[clientRTKProvider.reducerPath]: clientRTKProvider.reducer,
+		[addressRTKProvider.reducerPath]: addressRTKProvider.reducer,
+		[profileRTKProvider.reducerPath]: profileRTKProvider.reducer
 	},
 	middleware: (gDM) => {
 		return gDM({ serializableCheck: false }).concat(middlewares)

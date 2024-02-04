@@ -1,140 +1,80 @@
-import { FormEvent, useCallback } from "react"
-import { ICreateClientProsp } from "./CreateClient.interface"
-import { inputFormToJSON } from "@utils/form.util"
-import { useCreateMutation, useUpdateMutation } from "@redux/rtk/client"
+import { useCreateClientMutation, useUpdateClientMutation } from "@redux/rtk/client"
+import { IClient } from "@redux/rtk/client/client.interfaces"
+import { useCallback } from "react"
 import Swal from 'sweetalert2'
+import ModalForm from "../ModalForm"
+import { ICreateClientProsp } from "./CreateClient.interface"
 
-const CreateClient = ({ client, mode, onClose }: ICreateClientProsp) => {
+const CreateClient = ({ client, mode, show, onClose, onRefresh }: ICreateClientProsp) => {
+    const [createClient, { isLoading: isCreating }] = useCreateClientMutation()
+    const [updateClient, { isLoading: isUpdating }] = useUpdateClientMutation()
 
-    const [createClient, { isLoading: isCreating }] = useCreateMutation()
-    const [updateClient, { isLoading: isUpdating }] = useUpdateMutation()
+    const handleUpdate = useCallback((data: IClient, clear: () => void) => {
+        updateClient(data).unwrap().then((result) => {
+            const isError = !Array.isArray(result.errors) && result.errors ? true : false
 
-    const handleClose = useCallback(() => {
-        const closeButton = document.getElementById('buttonCreateClientClose')
+            Swal.fire({
+                title: `${isError ? "Error" : "Updated"} Client`,
+                text: isError ? `${Array.from(result.errors?.message || [])[0]}` || "Could not update client" : "Client updated successfully",
+                icon: isError ? "error" : "success"
+            });
 
-        if(closeButton){
-            closeButton.click()
-        }
+            clear()
+            onRefresh()
+        }).catch(() => {
+            Swal.fire({
+                title: "Error Client",
+                text: "Could not update client",
+                icon: "error"
+            });
+        })
+    }, [client])
 
-        onClose()
+    const handleCreate = useCallback((data: IClient, clear: () => void) => {
+        createClient(data).unwrap().then((result) => {
+            const isError = !Array.isArray(result.errors) && result.errors ? true : false
+
+            Swal.fire({
+                title: `${isError ? "Error" : "Created"} Client`,
+                text: isError ? `${Array.from(result.errors?.message || [])[0]}` || "Could not create client" : "Client created successfully",
+                icon: isError ? "error" : "success"
+            });
+
+            clear()
+            onRefresh()
+        }).catch(() => {
+            Swal.fire({
+                title: "Error Client",
+                text: "Could not create client",
+                icon: "error"
+            });
+        })
     }, [])
 
-    const handleSubmit = useCallback((e: FormEvent<HTMLFormElement>) => {
-        e.preventDefault()
-        e.stopPropagation()
-
-        const { data, clear } = inputFormToJSON(e.currentTarget)
-
-        if (mode == "create") {
-            createClient(data).unwrap().then((result) => {
-                if(result.errors){
-                    return Swal.fire({
-                        title: "Error Client",
-                        text: `${Array.from(result.errors?.message || [])[0]}` || "Could not create client",
-                        icon: "error"
-                    });
-                }
-
-                return Swal.fire({
-                    title: "Created Client",
-                    text: "Client created successfully",
-                    icon: "success",
-                    willClose() {
-                        handleClose()
-                        clear()
-                    },
-                })
-            }).catch(() => {
-                Swal.fire({
-                    title: "Error Client",
-                    text: "Could not create client",
-                    icon: "error"
-                });
-            })
-        } else if (mode == "update") {
-            updateClient({
-                ...data,
-                id: client?.id
-            } as any).unwrap().then((result) => {
-                if(result.errors && !result.updated){
-                    return Swal.fire({
-                        title: "Error Client",
-                        text: `${Array.from(result.errors?.message || [])[0]}` || "Could not update client",
-                        icon: "error"
-                    });
-                }
-
-                return Swal.fire({
-                    title: "Updated Client",
-                    text: "Client updated successfully",
-                    icon: "success",
-                    willClose() {
-                        handleClose()
-                        clear()
-                    },
-                });
-            }).catch(() => {
-                Swal.fire({
-                    title: "Error Client",
-                    text: "Could not update client",
-                    icon: "error"
-                });
-            })
-        }
-    }, [mode])
-
     return (
-        <>
-            <div
-                className="modal fade"
-                id="ClientModal"
-                tabIndex={-1}
-                aria-labelledby="ClientModalLabel"
-                aria-hidden="true"
-            >
-                <div className="modal-dialog">
-                    {mode && (
-                        <div className="modal-content">
-                            <div className="modal-header">
-                                <h1 className="modal-title fs-5" id="ClientModalLabel">
-                                    {mode == "create" ? "Create" : "Edit"} client
-                                </h1>
-                                <button
-                                    type="button"
-                                    className="btn-close"
-                                    data-bs-dismiss="modal"
-                                    aria-label="Close"
-                                />
-                            </div>
-                            <form method="POST" onSubmit={handleSubmit}>
-                                <div className="modal-body">
-                                    <div className="mb-3">
-                                        <label htmlFor="recipient-name" className="col-form-label">
-                                            Email:
-                                        </label>
-                                        <input type="email" name="email" className="form-control" defaultValue={client?.email} />
-                                    </div>
-                                </div>
-                                <div className="modal-footer">
-                                    <button
-                                        type="button"
-                                        className="btn btn-secondary"
-                                        data-bs-dismiss="modal"
-                                        id="buttonCreateClientClose"
-                                    >
-                                        Close
-                                    </button>
-                                    <button type="submit" className={`btn btn-${mode == "create" ? "primary" : "success"}`} disabled={isCreating || isUpdating}>
-                                        {mode == "create" ? isCreating ? "Creating..." :"Create" : isUpdating ? "Updating..." :"Update"}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    )}
-                </div>
-            </div>
-        </>
-
+        <ModalForm<IClient>
+            show={show}
+            mode={mode}
+            subTitle="client"
+            loading={isCreating || isUpdating}
+            entity={client || {} as IClient}
+            reference={`client-${client?.id}`}
+            handleSave={handleCreate}
+            handleUpdate={(data, clear) => handleUpdate(data, clear) }
+            handleClose={onClose}
+            fields={[
+                {
+                    label: "Email",
+                    name: "email",
+                    type: "email"
+                },
+                {
+                    label: "",
+                    name: "id",
+                    type: "hidden"
+                }
+            ]}
+        />
     )
 }
 

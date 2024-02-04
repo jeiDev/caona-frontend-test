@@ -1,140 +1,123 @@
-import { FormEvent, useCallback } from "react"
-import { ICreateProfileProsp } from "./CreateProfile.interface"
-import { inputFormToJSON } from "@utils/form.util"
-import { useCreateMutation, useUpdateMutation } from "@redux/rtk/client"
+import { useLazyGetOneQuery } from "@redux/rtk/client"
+import { useCreateProfileMutation, useUpdateProfileMutation } from "@redux/rtk/profile"
+import { IProfile } from "@redux/rtk/profile/profile.interfaces"
+import { useCallback, useEffect, useState } from "react"
 import Swal from 'sweetalert2'
+import ModalForm from "../ModalForm"
+import { ModeType } from "../ModalForm/ModalForm.interface"
+import { ICreateProfileProsp } from "./CreateProfile.interface"
 
-const CreateProfile = ({ onClose }: ICreateProfileProsp) => {
+const CreateProfile = ({ clientId, onClose, show }: ICreateProfileProsp) => {
+    const [mode, setMode] = useState<ModeType>("create")
 
-    const [createClient, { isLoading: isCreating }] = useCreateMutation()
-    const [updateClient, { isLoading: isUpdating }] = useUpdateMutation()
+    const [createProfile, { isLoading: isCreating }] = useCreateProfileMutation()
+    const [updateProfile, { isLoading: isUpdating }] = useUpdateProfileMutation()
 
-    const handleClose = useCallback(() => {
-        const closeButton = document.getElementById('buttonCreateClientClose')
+    const [getClient, { currentData: client }] = useLazyGetOneQuery()
 
-        if(closeButton){
-            closeButton.click()
+    const handleUpdate = useCallback((data: IProfile, clear: () => void) => {
+        updateProfile(data).unwrap().then((result) => {
+            const isError = !Array.isArray(result.errors) && result.errors ? true : false
+
+            Swal.fire({
+                title: `${isError ? "Error" : "Updated"} Client`,
+                text: isError ? `${Array.from(result.errors?.message || [])[0]}` || "Could not update client" : "Client updated successfully",
+                icon: isError ? "error" : "success"
+            });
+
+            clear()
+        }).catch(() => {
+            Swal.fire({
+                title: "Error Profile",
+                text: "Could not update profile",
+                icon: "error"
+            });
+        })
+    }, [client])
+
+    const handleCreate = useCallback((data: IProfile, clear: () => void) => {
+        createProfile(data).unwrap().then((result) => {
+            const isError = !Array.isArray(result.errors) && result.errors ? true : false
+
+            Swal.fire({
+                title: `${isError ? "Error" : "Created"} Profile`,
+                text: isError ? `${Array.from(result.errors?.message || [])[0]}` || "Could not create client" : "Client created successfully",
+                icon: isError ? "error" : "success"
+            });
+
+            clear()
+        }).catch(() => {
+            Swal.fire({
+                title: "Error Profile",
+                text: "Could not create profile",
+                icon: "error"
+            });
+        })
+    }, [clientId, client])
+
+    useEffect(() => {
+        if(clientId){
+            getClient({ id: clientId })
         }
+    }, [clientId])
 
-        onClose()
-    }, [])
-
-    const handleSubmit = useCallback((e: FormEvent<HTMLFormElement>) => {
-        e.preventDefault()
-        e.stopPropagation()
-
-        const { data, clear } = inputFormToJSON(e.currentTarget)
-
-        if (mode == "create") {
-            createClient(data).unwrap().then((result) => {
-                if(result.errors){
-                    return Swal.fire({
-                        title: "Error Client",
-                        text: `${Array.from(result.errors?.message || [])[0]}` || "Could not create client",
-                        icon: "error"
-                    });
-                }
-
-                return Swal.fire({
-                    title: "Created Client",
-                    text: "Client created successfully",
-                    icon: "success",
-                    willClose() {
-                        handleClose()
-                        clear()
-                    },
-                })
-            }).catch(() => {
-                Swal.fire({
-                    title: "Error Client",
-                    text: "Could not create client",
-                    icon: "error"
-                });
-            })
-        } else if (mode == "update") {
-            updateClient({
-                ...data,
-                id: client?.id
-            } as any).unwrap().then((result) => {
-                if(result.errors && !result.updated){
-                    return Swal.fire({
-                        title: "Error Client",
-                        text: `${Array.from(result.errors?.message || [])[0]}` || "Could not update client",
-                        icon: "error"
-                    });
-                }
-
-                return Swal.fire({
-                    title: "Updated Client",
-                    text: "Client updated successfully",
-                    icon: "success",
-                    willClose() {
-                        handleClose()
-                        clear()
-                    },
-                });
-            }).catch(() => {
-                Swal.fire({
-                    title: "Error Client",
-                    text: "Could not update client",
-                    icon: "error"
-                });
-            })
-        }
-    }, [mode])
+    useEffect(() => {
+        setMode(client?.data?.profile ? "update" : "create")
+    }, [client])
 
     return (
-        <>
-            <div
-                className="modal fade"
-                id="ClientModal"
-                tabIndex={-1}
-                aria-labelledby="ClientModalLabel"
-                aria-hidden="true"
-            >
-                <div className="modal-dialog">
-                    {mode && (
-                        <div className="modal-content">
-                            <div className="modal-header">
-                                <h1 className="modal-title fs-5" id="ClientModalLabel">
-                                    {mode == "create" ? "Create" : "Edit"} client
-                                </h1>
-                                <button
-                                    type="button"
-                                    className="btn-close"
-                                    data-bs-dismiss="modal"
-                                    aria-label="Close"
-                                />
-                            </div>
-                            <form method="POST" onSubmit={handleSubmit}>
-                                <div className="modal-body">
-                                    <div className="mb-3">
-                                        <label htmlFor="recipient-name" className="col-form-label">
-                                            Email:
-                                        </label>
-                                        <input type="email" name="email" className="form-control" defaultValue={client?.email} />
-                                    </div>
-                                </div>
-                                <div className="modal-footer">
-                                    <button
-                                        type="button"
-                                        className="btn btn-secondary"
-                                        data-bs-dismiss="modal"
-                                        id="buttonCreateClientClose"
-                                    >
-                                        Close
-                                    </button>
-                                    <button type="submit" className={`btn btn-${mode == "create" ? "primary" : "success"}`} disabled={isCreating || isUpdating}>
-                                        {mode == "create" ? isCreating ? "Creating..." :"Create" : isUpdating ? "Updating..." :"Update"}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    )}
-                </div>
-            </div>
-        </>
-
+        <ModalForm<IProfile>
+            show={show}
+            mode={mode}
+            subTitle="profile"
+            reference={`profile-${clientId}`}
+            onlyShowLabelUpdate
+            loading={isCreating || isUpdating}
+            entity={client?.data?.profile ? {
+                ...client.data.profile,
+                client_id: clientId
+            } : { client_id: clientId } as IProfile}
+            handleSave={(data, clear) => handleCreate(data, clear)}
+            handleUpdate={(data, clear) => handleUpdate(data, clear)}
+            handleClose={onClose}
+            fields={[
+                {
+                    label: "First Name",
+                    name: "first_name",
+                    type: "text"
+                },
+                {
+                    label: "Last Name",
+                    name: "last_name",
+                    type: "text"
+                },
+                {
+                    label: "Phone",
+                    name: "phone",
+                    type: "tel"
+                },
+                {
+                    label: "Gender",
+                    name: "sexo",
+                    type: "select",
+                    options: [
+                        { value: "", label: "Select gender" },
+                        { value: "M", label: "Male" },
+                        { value: "F", label: "Female" }
+                    ]
+                },
+                {
+                    label: "",
+                    name: "client_id",
+                    type: "hidden"
+                },
+                {
+                    label: "",
+                    name: "id",
+                    type: "hidden"
+                },
+            ]}
+        />
     )
 }
 

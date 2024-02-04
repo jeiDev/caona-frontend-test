@@ -11,8 +11,6 @@ const PaginationComponent = ({ totalItems, itemsPage, onPageChange }: IPaginatio
     onPageChange(page);
   };
 
-  console.log({totalPages, totalItems, itemsPage})
-
   const getPaginationItems = () => {
     const items = [];
 

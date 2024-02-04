@@ -1,5 +1,7 @@
 import { ObjectKeyDynamicI } from "@interfaces/common/common.interface"
 import { IGeneralPaginationResponse } from "@interfaces/pagination.interface"
+import { IAddress } from "../address/address.interfaces"
+import { IProfile } from "../profile/profile.interfaces"
 
 export interface ICreateClientRequest {
 	email: string
@@ -15,6 +17,8 @@ export interface IClient {
 	created_at: string
 	updated_at: string
 	deleted_at?: string
+	address?: IAddress
+	profile?: IProfile
 }
 
 export interface ICreateClientResponse {
@@ -29,5 +33,10 @@ export interface IUpdateClientResponse extends ICreateClientResponse {
 export interface IGetManyClientResponse {
 	data: IClient[]
 	pagination: IGeneralPaginationResponse
-	errors: unknown
+	errors: ObjectKeyDynamicI
+}
+
+export interface IGetOneClientResponse {
+	data: IClient
+	errors: ObjectKeyDynamicI
 }

@@ -20,29 +20,22 @@ export const assignValueToObject = (text: string, value: any, _data: object) => 
     }, "")
 }
 
-export const inputFormToJSON = (target: HTMLFormElement): { data: any, clear: () => void} => {
-    const items = [...Array.from(target.querySelectorAll("input")), ...Array.from(target.querySelectorAll("textarea"))]
-    return {
-        data: items.reduce((a: ObjectKeyDynamicI, b) => {
-            let name = b.name;
-            let names = name.split("."); 
-            let value = getValueTypeOfInput(b);
-            if (names.length > 1) {
-                a[names[0]] = {
-                    ...(a[names[0]]),
-                    ...(name.indexOf(".") !== -1 ? JSON.parse(assignValueToObject(name, value, a[names[0]])) : value)
-                }
-            } else if (name) {
-                a[name] = value;
+export const inputFormToJSON = (target: HTMLFormElement): any => {
+    const items = [...Array.from(target.querySelectorAll("input")), ...Array.from(target.querySelectorAll("textarea")), ...Array.from(target.querySelectorAll("select"))]
+    return items.reduce((a: ObjectKeyDynamicI, b) => {
+        let name = b.name;
+        let names = name.split("."); 
+        let value = getValueTypeOfInput(b);
+        if (names.length > 1) {
+            a[names[0]] = {
+                ...(a[names[0]]),
+                ...(name.indexOf(".") !== -1 ? JSON.parse(assignValueToObject(name, value, a[names[0]])) : value)
             }
-    
-    
-            return a;
-        }, {}),
-        clear() {
-            items.forEach(item => {
-                item.value = ""
-            })
-        },
-    }
+        } else if (name) {
+            a[name] = value;
+        }
+
+
+        return a;
+    }, {})
 }

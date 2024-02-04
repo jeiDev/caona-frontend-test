@@ -1,22 +1,27 @@
-import { FormEvent, useCallback } from "react"
-import { ICreateClientProsp } from "./CreateClient.interface"
+import { useLazyGetOneQuery } from "@redux/rtk/client"
+import { useCreateProfileMutation, useUpdateProfileMutation } from "@redux/rtk/profile"
+import { IProfile } from "@redux/rtk/profile/profile.interfaces"
 import { inputFormToJSON } from "@utils/form.util"
-import { useCreateMutation, useUpdateMutation } from "@redux/rtk/client"
+import { FormEvent, useCallback, useEffect, useState } from "react"
 import Swal from 'sweetalert2'
+import { ModeType } from "../CreateClient/CreateClient.interface"
+import { ICreateAddressProsp } from "./CreateAddress.interface"
 
-const CreateClient = ({ client, mode, onClose }: ICreateClientProsp) => {
-
-    const [createClient, { isLoading: isCreating }] = useCreateMutation()
-    const [updateClient, { isLoading: isUpdating }] = useUpdateMutation()
+const CreateAddress = ({ clientId, onClear }: ICreateAddressProsp) => {
+    const [mode, setMode] = useState<ModeType>()
+    const [createProfile, { isLoading: isCreating }] = useCreateProfileMutation()
+    const [updateProfile, { isLoading: isUpdating }] = useUpdateProfileMutation()
+    const [getClient, { currentData: client, isLoading: isLoadingGetClient }] = useLazyGetOneQuery()
+    const [data, setData] = useState<IProfile>({} as IProfile)
 
     const handleClose = useCallback(() => {
-        const closeButton = document.getElementById('buttonCreateClientClose')
+        const closeButton = document.getElementById('buttonCreateAddressClose')
 
-        if(closeButton){
+        if (closeButton) {
             closeButton.click()
         }
 
-        onClose()
+        onClear()
     }, [])
 
     const handleSubmit = useCallback((e: FormEvent<HTMLFormElement>) => {
@@ -26,18 +31,21 @@ const CreateClient = ({ client, mode, onClose }: ICreateClientProsp) => {
         const { data, clear } = inputFormToJSON(e.currentTarget)
 
         if (mode == "create") {
-            createClient(data).unwrap().then((result) => {
+            createProfile({
+                ...data,
+                client_id: clientId
+            }).unwrap().then((result) => {
                 if(result.errors){
                     return Swal.fire({
-                        title: "Error Client",
-                        text: `${Array.from(result.errors?.message || [])[0]}` || "Could not create client",
+                        title: "Error Profile",
+                        text: `${Array.from(result.errors?.message || [])[0]}` || "Could not create profile",
                         icon: "error"
                     });
                 }
 
                 return Swal.fire({
-                    title: "Created Client",
-                    text: "Client created successfully",
+                    title: "Created Profile",
+                    text: "Profile created successfully",
                     icon: "success",
                     willClose() {
                         handleClose()
@@ -46,27 +54,27 @@ const CreateClient = ({ client, mode, onClose }: ICreateClientProsp) => {
                 })
             }).catch(() => {
                 Swal.fire({
-                    title: "Error Client",
-                    text: "Could not create client",
+                    title: "Error Profile",
+                    text: "Could not create profile",
                     icon: "error"
                 });
             })
-        } else if (mode == "update") {
-            updateClient({
+        } else if (mode == "update" && client?.data) {
+            updateProfile({
                 ...data,
-                id: client?.id
+                id: client?.data?.profile
             } as any).unwrap().then((result) => {
                 if(result.errors && !result.updated){
                     return Swal.fire({
-                        title: "Error Client",
-                        text: `${Array.from(result.errors?.message || [])[0]}` || "Could not update client",
+                        title: "Error Profile",
+                        text: `${Array.from(result.errors?.message || [])[0]}` || "Could not update profile",
                         icon: "error"
                     });
                 }
 
                 return Swal.fire({
-                    title: "Updated Client",
-                    text: "Client updated successfully",
+                    title: "Updated Profile",
+                    text: "Profile updated successfully",
                     icon: "success",
                     willClose() {
                         handleClose()
@@ -75,29 +83,48 @@ const CreateClient = ({ client, mode, onClose }: ICreateClientProsp) => {
                 });
             }).catch(() => {
                 Swal.fire({
-                    title: "Error Client",
-                    text: "Could not update client",
+                    title: "Error Profile",
+                    text: "Could not update profile",
                     icon: "error"
                 });
             })
         }
-    }, [mode])
+    }, [mode, clientId, client])
+
+    const handleChange = useCallback((name: string, value: string) => {
+        setData((prev) => ({
+            ...prev,
+            [name]: value
+        }))
+    }, [])
+
+    useEffect(() => {
+        getClient({id: clientId})
+    }, [clientId])
+
+    useEffect(() => {
+        setMode(client?.data ? "update" : "create")
+    }, [client])
+
+    useEffect(() => {
+        setData(client?.data?.profile || {} as IProfile)
+    }, [client?.data?.profile])
 
     return (
         <>
             <div
                 className="modal fade"
-                id="ClientModal"
+                id="ClientAddressModal"
                 tabIndex={-1}
-                aria-labelledby="ClientModalLabel"
+                aria-labelledby="ClientAddressModalLabel"
                 aria-hidden="true"
             >
                 <div className="modal-dialog">
                     {mode && (
                         <div className="modal-content">
                             <div className="modal-header">
-                                <h1 className="modal-title fs-5" id="ClientModalLabel">
-                                    {mode == "create" ? "Create" : "Edit"} client
+                                <h1 className="modal-title fs-5" id="ClientAddressModalLabel">
+                                    Edit profile
                                 </h1>
                                 <button
                                     type="button"
@@ -110,9 +137,31 @@ const CreateClient = ({ client, mode, onClose }: ICreateClientProsp) => {
                                 <div className="modal-body">
                                     <div className="mb-3">
                                         <label htmlFor="recipient-name" className="col-form-label">
-                                            Email:
+                                            First Name:
                                         </label>
-                                        <input type="email" name="email" className="form-control" defaultValue={client?.email} />
+                                        <input type="text" name="first_name" className="form-control" value={data?.first_name || ""} required onChange={(e) => handleChange("first_name", e.currentTarget.value)}/>
+                                    </div>
+                                    <div className="mb-3">
+                                        <label htmlFor="recipient-name" className="col-form-label">
+                                            Last Name:
+                                        </label>
+                                        <input type="text" name="last_name" className="form-control" value={data?.last_name || ""} required onChange={(e) => handleChange("last_name", e.currentTarget.value)}/>
+                                    </div>
+                                    <div className="mb-3">
+                                        <label htmlFor="recipient-name" className="col-form-label">
+                                            Phone:
+                                        </label>
+                                        <input type="tel" name="phone" className="form-control" value={data?.phone || ""} required onChange={(e) => handleChange("phone", e.currentTarget.value)}/>
+                                    </div>
+                                    <div className="mb-3">
+                                        <label htmlFor="recipient-name" className="col-form-label">
+                                            Gender:
+                                        </label>
+                                        <select className="form-select"  name="sexo" value={data?.sexo || ""} required onChange={(e) => handleChange("sexo", e.currentTarget.value)}>
+                                            <option selected value="">Select gender</option>
+                                            <option value="M">Male</option>
+                                            <option value="F">Female</option>
+                                        </select>
                                     </div>
                                 </div>
                                 <div className="modal-footer">
@@ -120,12 +169,12 @@ const CreateClient = ({ client, mode, onClose }: ICreateClientProsp) => {
                                         type="button"
                                         className="btn btn-secondary"
                                         data-bs-dismiss="modal"
-                                        id="buttonCreateClientClose"
+                                        id="buttonCreateAddressClose"
                                     >
                                         Close
                                     </button>
-                                    <button type="submit" className={`btn btn-${mode == "create" ? "primary" : "success"}`} disabled={isCreating || isUpdating}>
-                                        {mode == "create" ? isCreating ? "Creating..." :"Create" : isUpdating ? "Updating..." :"Update"}
+                                    <button type="submit" className={`btn btn-success`} disabled={isCreating || isUpdating}>
+                                        {isCreating || isUpdating ? "Updating..." : "Update"}
                                     </button>
                                 </div>
                             </form>
@@ -138,4 +187,4 @@ const CreateClient = ({ client, mode, onClose }: ICreateClientProsp) => {
     )
 }
 
-export default CreateClient
+export default CreateAddress

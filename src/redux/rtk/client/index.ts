@@ -5,6 +5,7 @@ import {
 	ICreateClientRequest,
 	ICreateClientResponse,
 	IGetManyClientResponse,
+	IGetOneClientResponse,
 	IUpdateClientRequest,
 	IUpdateClientResponse
 } from './client.interfaces'
@@ -18,7 +19,7 @@ export const clientRTKProvider = createApi({
 		}
 	}),
 	endpoints: (builder) => ({
-		create: builder.mutation<ICreateClientResponse, ICreateClientRequest>({
+		createClient: builder.mutation<ICreateClientResponse, ICreateClientRequest>({
 			query: (data) => ({
 				url: '/clients',
 				method: 'POST',
@@ -26,9 +27,9 @@ export const clientRTKProvider = createApi({
 			}),
 			transformResponse: (res: ICreateClientResponse) => {
 				return res
-			}
+			},
 		}),
-		update: builder.mutation<IUpdateClientResponse, IUpdateClientRequest>({
+		updateClient: builder.mutation<IUpdateClientResponse, IUpdateClientRequest>({
 			query: (data) => ({
 				url: '/clients',
 				method: 'PUT',
@@ -38,7 +39,7 @@ export const clientRTKProvider = createApi({
 				return res
 			}
 		}),
-		delete: builder.mutation<{ deleted: boolean }, number>({
+		deleteClient: builder.mutation<{ deleted: boolean }, number>({
 			query: (id) => ({
 				url: '/clients',
 				method: 'DELETE',
@@ -48,7 +49,14 @@ export const clientRTKProvider = createApi({
 				return res
 			}
 		}),
-		getMany: builder.query<IGetManyClientResponse, { page: number, ['per-page']: number }>({
+		getManyClient: builder.query<IGetManyClientResponse, { page: number, ['per-page']: number }>({
+			query: (data) => ({
+				url: '/clients',
+				method: 'GET',
+				params: data
+			})
+		}),
+		getOne: builder.query<IGetOneClientResponse, { id: number }>({
 			query: (data) => ({
 				url: '/clients',
 				method: 'GET',
@@ -59,9 +67,11 @@ export const clientRTKProvider = createApi({
 })
 
 export const {
-	useCreateMutation,
-	useUpdateMutation,
-	useGetManyQuery,
-	useLazyGetManyQuery,
-	useDeleteMutation
+	useCreateClientMutation,
+	useDeleteClientMutation,
+	useGetManyClientQuery,
+	useLazyGetManyClientQuery,
+	useUpdateClientMutation,
+	useGetOneQuery,
+	useLazyGetOneQuery
 } = clientRTKProvider
