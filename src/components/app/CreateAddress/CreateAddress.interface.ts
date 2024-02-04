@@ -1,4 +1,5 @@
 export interface ICreateAddressProsp{
     clientId: number
-    onClear: () => void
+    show: boolean
+    onClose: () => void
 }

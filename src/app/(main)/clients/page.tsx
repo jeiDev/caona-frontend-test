@@ -18,7 +18,8 @@ export default function Client() {
 
   const [showModalClient, setShowModalClient] = useState<boolean>(false)
   const [showModalProfile, setShowModalProfile] = useState<boolean>(false)
-  
+  const [showModalAddress, setShowModalAddress] = useState<boolean>(false)
+
   const [filters, setFilters] = useState({ limit: 10, page: 1 })
 
   const handleSelect = useCallback((i: number) => {
@@ -104,6 +105,16 @@ export default function Client() {
     setClient(null)
   }, [])
 
+  const handleUpdateAddress = useCallback((i: number) => {
+    handleSelect(i)
+    setShowModalAddress(true)
+  }, [clients])
+
+  const handleCloseAddress = useCallback(() => {
+    setShowModalAddress(false)
+    setClient(null)
+  }, [])
+
   useEffect(() => {
     getAllClients({
       "per-page": filters.limit,
@@ -141,26 +152,15 @@ export default function Client() {
                     <Button variant="success" onClick={() => handleUpdateClient(i)} >
                       <i className="fas fa-edit" />
                     </Button>
-                    <Button variant="info" onClick={() => handleUpdateProfile(i)}  style={{ marginLeft: 10 }}>
+                    <Button variant="info" onClick={() => handleUpdateProfile(i)} style={{ marginLeft: 10 }}>
                       <i className="fa fa-user" />
                     </Button>
-
-                    <button
-                      type="button"
-                      className="btn btn-warning"
-                      data-bs-toggle="modal"
-                      data-bs-target="#ClientAddressModal"
-                      data-bs-whatever="@getbootstrap"
-                      style={{ marginLeft: 10 }}
-                      onClick={() => {
-                        handleSelect(i)
-                      }}
-                    >
+                    <Button variant="warning" onClick={() => handleUpdateAddress(i)} style={{ marginLeft: 10 }}>
                       <i className="fa fa-location-arrow" />
-                    </button>
-                    <button type="button" className="btn btn-danger" style={{ marginLeft: 10 }} onClick={() => handleDelete(item.id)}>
+                    </Button>
+                    <Button variant="danger" onClick={() => handleDelete(item.id)} style={{ marginLeft: 10 }}>
                       <i className="far fa-trash-alt" />
-                    </button>
+                    </Button>
                   </td>
                 </tr>
               ))}
@@ -195,13 +195,12 @@ export default function Client() {
         clientId={client?.id as number}
         onClose={handleCloseProfile}
       />
-      {/* 
+
       <CreateAddress
+        show={showModalAddress}
         clientId={client?.id as number}
-        onClear={() => {
-          setClient(null)
-        }}
-      /> */}
+        onClose={handleCloseAddress}
+      />
     </React.Fragment>
   )
 }

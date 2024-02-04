@@ -20,8 +20,8 @@ const CreateProfile = ({ clientId, onClose, show }: ICreateProfileProsp) => {
             const isError = !Array.isArray(result.errors) && result.errors ? true : false
 
             Swal.fire({
-                title: `${isError ? "Error" : "Updated"} Client`,
-                text: isError ? `${Array.from(result.errors?.message || [])[0]}` || "Could not update client" : "Client updated successfully",
+                title: `${isError ? "Error" : "Updated"} Profle`,
+                text: isError ? `${Array.from(result.errors?.message || [])[0]}` || "Could not update profile" : "Profle updated successfully",
                 icon: isError ? "error" : "success"
             });
 
@@ -41,7 +41,7 @@ const CreateProfile = ({ clientId, onClose, show }: ICreateProfileProsp) => {
 
             Swal.fire({
                 title: `${isError ? "Error" : "Created"} Profile`,
-                text: isError ? `${Array.from(result.errors?.message || [])[0]}` || "Could not create client" : "Client created successfully",
+                text: isError ? `${Array.from(result.errors?.message || [])[0]}` || "Could not create profile" : "Profile created successfully",
                 icon: isError ? "error" : "success"
             });
 
